@@ -383,7 +383,7 @@ version of what's in `metadata.json`:
 </html>
 ```
 
-This'll then be loaded in to the watch. See [apps/qrcode/grcode.html](the QR Code app)
+This'll then be loaded in to the watch. See [the QR Code app](apps/qrcode/grcode.html)
 for a clean example.
 
 **Note:** we specify a `url` for JS files even though it doesn't have to exist
@@ -422,7 +422,7 @@ When the page is ready a function called `onInit` is called,
 and in that you can call `Puck.write` and `Puck.eval` to get
 the data you require from Bangle.js.
 
-See [apps/gpsrec/interface.html](the GPS Recorder) for a full example.
+See [the GPS Recorder](apps/gpsrec/interface.html) for a full example.
 
 ### Adding configuration to the "Settings" menu
 
@@ -460,15 +460,15 @@ In this example the app needs to add `myappid.settings.js` to `storage` in `meta
 It should also add `myappid.json` to `data`, to make sure it is cleaned up when the app is uninstalled.
 ```json
   { "id": "myappid",
-    ...
+    "..."
     "storage": [
-      ...
+      "..."
       {"name":"myappid.settings.js","url":"settings.js"}
     ],
     "data": [
       {"name":"myappid.json"}
     ]
-  },
+  }
 ```
 
 ## Modules
@@ -534,27 +534,27 @@ The screen is parted in a widget and app area for lcd mode `direct`(default).
 
 You can use `g.setColor(r,g,b)` OR `g.setColor(16bitnumber)` - some common 16 bit colors are below:
 
-| color-name | color-value|
-| :-: | :-: |
-| Black | 0x0000 |
-| Navy | 0x000F |
-| DarkGreen | 0x03E0 |
-| DarkCyan | 0x03EF |
-| Maroon | 0x7800 |
-| Purple | 0x780F |
-| Olive | 0x7BE0
-| LightGray | 0xC618
-| DarkGrey | 0x7BEF
-| Blue | 0x001F
-| Green | 0x07E0 |
-| Cyan | 0x07FF |
-| RED | 0xF800 |
-| Magenta | 0xF81F |
-| Yellow | 0xFFE0 |
-| White | 0xFFFF |
-| Orange | 0xFD20 |
-| GreenYellow | 0xAFE5 |
-| Pink | 0xF81F |
+| color-name  | color-value |
+|:-----------:|:-----------:|
+|    Black    |   0x0000    |
+|    Navy     |   0x000F    |
+|  DarkGreen  |   0x03E0    |
+|  DarkCyan   |   0x03EF    |
+|   Maroon    |   0x7800    |
+|   Purple    |   0x780F    |
+|    Olive    |   0x7BE0    |
+|  LightGray  |   0xC618    |
+|  DarkGrey   |   0x7BEF    |
+|    Blue     |   0x001F    |
+|    Green    |   0x07E0    |
+|    Cyan     |   0x07FF    |
+|     RED     |   0xF800    |
+|   Magenta   |   0xF81F    |
+|   Yellow    |   0xFFE0    |
+|    White    |   0xFFFF    |
+|   Orange    |   0xFD20    |
+| GreenYellow |   0xAFE5    |
+|    Pink     |   0xF81F    |
 
 ## Fonts
 
@@ -595,6 +595,35 @@ The [`testing`](testing) folder contains snippets of code that might be useful f
 * `testing/colors.js` - 16 bit colors as name value pairs
 * `testing/gpstrack.js` - code to store a GPS track in Bangle.js storage and output it back to the console
 
+## RDI Method: EDC(s)
+
+If this repository contains several "EDCs'branches" they need to be listed them and the link toward the PDE document and the internal article need to be added.
+For instance:
+
+| EDCs           | PDE | Internal Article | Current State | Main File                       | Main Contributor | Corresponding EDC |
+|----------------|-----|------------------|---------------|---------------------------------|------------------|-------------------|
+| EdC.CLIN.5.018 | NA  | NA               | Ongoing       | [app.js](apps/clinikali/app.js) | CHAU, Laurent    | —                 |
+
+## Requirements
+
 ## Credits
 
 The majority of icons used for these apps are from [Icons8](https://icons8.com/) - we have a commercial license but icons are also free for Open Source projects.
+
+## Documentation
+This part serves as comprehensive documentation for the repository's features, methods, and classes. It explains the functionalities, usage instructions, and available options in detail to assist users in utilizing the repository effectively.
+
+## Contributing
+If one would like to contribute to the repository, issues can be reported, improvements suggested, or merge requests submitted. The guidelines need to be followed for contributing and any specific requirements or coding standards need to be adopted.
+
+## License
+Not applicable.
+
+## Contact
+Contact @rodrigo.balp or @ataoum for any questions or inquiries.
+
+## Acknowledgements
+Not applicable.
+
+## References
+Not applicable.
