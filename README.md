@@ -12,6 +12,15 @@ The release version is manually refreshed with regular intervals while the devel
 submitting code to this repository you confirm that you are happy with it being MIT licensed,
 and that it is not licensed in another way that would make this impossible.
 
+## RDI Method: EDC(s)
+
+If this repository contains several "EDCs'branches" they need to be listed them and the link toward the PDE document and the internal article need to be added.
+For instance:
+
+| EDCs           | PDE | Internal Article | Current State | Main File                       | Main Contributor | Corresponding EDC |
+|----------------|-----|------------------|---------------|---------------------------------|------------------|-------------------|
+| EdC.CLIN.5.018 | NA  | NA               | Ongoing       | [app.js](apps/clinikali/app.js) | CHAU, Laurent    | —                 |
+
 ## How does it work?
 
 * A list of apps is in `apps.json` (this is auto-generated from all the `apps/yourapp/metadata.json` using Jekyll or `bin/create_apps_json.sh`)
@@ -594,15 +603,6 @@ The [`testing`](testing) folder contains snippets of code that might be useful f
 
 * `testing/colors.js` - 16 bit colors as name value pairs
 * `testing/gpstrack.js` - code to store a GPS track in Bangle.js storage and output it back to the console
-
-## RDI Method: EDC(s)
-
-If this repository contains several "EDCs'branches" they need to be listed them and the link toward the PDE document and the internal article need to be added.
-For instance:
-
-| EDCs           | PDE | Internal Article | Current State | Main File                       | Main Contributor | Corresponding EDC |
-|----------------|-----|------------------|---------------|---------------------------------|------------------|-------------------|
-| EdC.CLIN.5.018 | NA  | NA               | Ongoing       | [app.js](apps/clinikali/app.js) | CHAU, Laurent    | —                 |
 
 ## Requirements
 
