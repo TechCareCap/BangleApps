@@ -200,11 +200,7 @@
 
       WIDGETS.recorder.draw();
       // writeSubSecs = appSettings.period === 1;
-      writeSetup = setInterval(
-        writeLog,
-        appSettings.period * 1000,
-        appSettings.period,
-      );
+      writeSetup = setInterval(writeLog, Math.floor(1000 / appSettings.period));
     } else {
       WIDGETS.recorder.width = 0;
       storageFile = undefined;
