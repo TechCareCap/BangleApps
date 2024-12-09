@@ -2,6 +2,7 @@
   let storageFile; // file for recording
   let activeRecorders = [];
   let writeSetup; // the interval for writing
+  // let writeSubSecs; // true if we should write .1s for time, otherwise round to nearest second
 
   const loadAppSettings = () => {
     const appSettings = require("Storage").readJSON("clinikali.json", 1) || {};
@@ -10,10 +11,6 @@
 
     if (!appSettings.file || !appSettings.file.startsWith("clinikali.log")) {
       appSettings.recording = false;
-    }
-
-    if (!appSettings.record) {
-      appSettings.record = ["accel", "hrm", "baro"];
     }
 
     return appSettings;
