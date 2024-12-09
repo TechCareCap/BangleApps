@@ -22,6 +22,7 @@ function loadAppSettings() {
   if (settingsChanged) {
     require("Storage").writeJSON("clinikali.json", appSettings);
   }
+  return appSettings;
 }
 
 loadAppSettings();
