@@ -4,24 +4,51 @@ Bangle.drawWidgets();
 // Enable Bluetooth Low Energy
 NRF.wake();
 
-// Request pairing
-NRF.security = { passkey: "123456", mitm: 1, display: 1 };
-
 let appSettings;
+
+function logAction(message) {
+  const logFile = "clinikali.log.txt";
+  const timestamp = new Date().toISOString();
+  const logEntry = `[${timestamp}] ${message}\n`;
+
+  // Append to log file
+  const file = require("Storage").open(logFile, "a");
+  file.write(logEntry);
+}
 
 function loadAppSettings() {
   appSettings = require("Storage").readJSON("clinikali.json", 1) || {};
-
   let settingsChanged = false;
 
-  if (!appSettings.file) {
+  // Initialize PID if not set
+  if (!appSettings.pid) {
     settingsChanged = true;
-    appSettings.file = "clinikali.log0.csv";
+    appSettings.pid = "05"; // Default PID
+  }
+
+  // Initialize record array if not set
+  if (!appSettings.record) {
+    settingsChanged = true;
+    appSettings.record = ["accel", "hrm", "baro"];
+  }
+
+  // Initialize period if not set
+  if (!appSettings.period) {
+    settingsChanged = true;
+    appSettings.period = 1;
+  }
+
+  // Initialize recording status if not set
+  if (typeof appSettings.recording === "undefined") {
+    settingsChanged = true;
+    appSettings.recording = false;
   }
 
   if (settingsChanged) {
     require("Storage").writeJSON("clinikali.json", appSettings);
   }
+
+  return appSettings;
 }
 
 loadAppSettings();
@@ -34,34 +61,57 @@ function updateAppSettings() {
   }
 }
 
-function extractFileNumber(filename) {
-  const matches = filename.match(/^clinikali\.log(.*)\.csv$/);
+function generateFilename() {
+  const date = new Date();
+  const dateStr = date.toISOString().slice(0, 10); // Gets YYYY-MM-DD
+  const baseFilename = `${appSettings.pid}_${dateStr}`;
 
-  if (matches) {
-    return matches[1];
+  // Check existing files with same base name
+  const files = require("Storage").list(
+    new RegExp(`^${baseFilename}_[a-z]\\.csv$`),
+  );
+
+  if (files.length === 0) {
+    return `${baseFilename}_a.csv`;
   }
 
-  return 0;
+  // Find the last letter used
+  const lastFile = files.sort().pop();
+  const lastLetter = lastFile.charAt(lastFile.length - 5);
+  const nextLetter = String.fromCharCode(lastLetter.charCodeAt(0) + 1);
+
+  return `${baseFilename}_${nextLetter}.csv`;
+}
+
+function extractFileNumber(filename) {
+  if (!filename) {
+    return "";
+  }
+
+  const parts = filename.split("_");
+
+  if (parts.length >= 3) {
+    return `${parts[0]} ${parts[1]} ${parts[2].charAt(0)}`; // Returns "PID DATE LETTER"
+  }
+
+  return filename;
 }
 
 function toggleRecorder(name) {
-  const appSettings = loadAppSettings();
-
-  // Initialize record array if it doesn't exist
-  if (!appSettings.record) {
-    appSettings.record = ["accel", "hrm", "baro"];
-  }
-
+  // No need to load settings again as we already have them in appSettings
   const index = appSettings.record.indexOf(name);
+
   if (index === -1) {
     // Add recorder
     appSettings.record.push(name);
+    logAction(`Sensor ${name} enabled`);
   } else {
     // Remove recorder
     appSettings.record.splice(index, 1);
+    logAction(`Sensor ${name} disabled`);
   }
 
-  updateAppSettings(appSettings);
+  updateAppSettings();
   showSensorMenu();
 }
 
@@ -79,18 +129,18 @@ function showSensorMenu() {
   // Add checkbox menu items for each sensor
   sensorMenu["Accelerometer"] = {
     value: appSettings.record.includes("accel"),
-    onchange: () => toggleRecorder("accel")
+    onchange: () => toggleRecorder("accel"),
   };
 
   sensorMenu["Heart Rate"] = {
     value: appSettings.record.includes("hrm"),
-    onchange: () => toggleRecorder("hrm")
+    onchange: () => toggleRecorder("hrm"),
   };
 
   if (Bangle.getPressure) {
     sensorMenu["Temperature"] = {
       value: appSettings.record.includes("baro"),
-      onchange: () => toggleRecorder("baro")
+      onchange: () => toggleRecorder("baro"),
     };
   }
 
@@ -103,28 +153,37 @@ function showSensorMenu() {
 
 function showMainMenu() {
   const mainMenu = {
-    "": { title: "Recorder" },
+    "": { title: "Clinikali" },
     "< Back": () => {
       load();
     },
-    RECORD: {
+    Record: {
       value: !!appSettings.recording,
       onchange: (newValue) => {
         setTimeout(() => {
           E.showMenu();
 
+          if (newValue) {
+            // Generate new filename when starting recording
+            const newFilename = generateFilename();
+            appSettings.file = newFilename;
+            updateAppSettings();
+            logAction(`Created new file: ${newFilename}`);
+            // You'll need to pass this filename to your recorder widget
+          }
+
           WIDGETS.recorder.setRecording(newValue).then(() => {
             loadAppSettings();
+            logAction(`Recording ${newValue ? "started" : "stopped"}`);
             showMainMenu();
           });
         }, 1);
       },
     },
-    File: { value: extractFileNumber(appSettings.file) },
     "View Files": () => {
       viewFiles();
     },
-    "Sensors": () => {
+    Sensors: () => {
       showSensorMenu();
     },
     "Time Period": {
@@ -136,6 +195,7 @@ function showMainMenu() {
       onchange: (newValue) => {
         appSettings.recording = false; // stop recording if we change anything
         appSettings.period = newValue;
+        logAction(`Sampling period changed to ${newValue}Hz`);
         updateAppSettings();
       },
     },
@@ -147,44 +207,11 @@ function showMainMenu() {
 function viewFile(filename) {
   E.showMenu({
     "": { title: `File ${extractFileNumber(filename)}` },
-    "Send Data": () => {
-      E.showMessage("Preparing to send...");
-
-      function sendFileData() {
-        // Remove (StorageFile) if present in the filename
-        const cleanFilename = filename.replace(" (StorageFile)", "");
-        let file = require("Storage").open(cleanFilename, "r");
-
-        if (!file) {
-          E.showMessage("File not found!");
-          setTimeout(() => viewFile(filename), 2000);
-          return;
-        }
-
-        E.showMessage("Sending data...");
-        let line;
-
-        // Read file line by line
-        while ((line = file.readLine()) !== undefined) {
-          if (line.trim()) {
-            Bluetooth.println("<data>");
-            Bluetooth.println(line);
-            Bluetooth.println("</data>");
-          }
-        }
-
-        Bluetooth.println("<end>");
-
-        E.showMessage("Data sent!");
-        setTimeout(() => viewFile(filename), 2000);
-      }
-
-      sendFileData();
-    },
     Delete: () => {
       E.showPrompt("Delete File?").then((shouldDelete) => {
         if (shouldDelete) {
           require("Storage").erase(filename);
+          logAction(`Deleted file: ${filename}`);
           viewFiles();
         } else {
           viewFile(filename);
@@ -205,7 +232,7 @@ function viewFiles() {
   let filesFound = false;
 
   require("Storage")
-    .list(/^clinikali\.log.*\.csv$/, { sf: true })
+    .list(/^P\d{3}_\d{4}-\d{2}-\d{2}_[a-z]\.csv$/, { sf: true }) // Changed pattern
     .reverse()
     .forEach((filename) => {
       filesFound = true;
