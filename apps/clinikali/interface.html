@@ -1,129 +1,235 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Clinikali Data Download</title>
     <link rel="stylesheet" href="../../css/spectre.min.css" />
-</head>
-<body>
-<div id="files"></div>
-<div class="container" id="toastcontainer"></div>
+  </head>
+  <body>
+    <div id="files"></div>
+    <div id="logs"></div>
+    <div class="container" id="toastcontainer"></div>
 
-<script src="../../core/lib/interface.js"></script>
-<script src="../../core/js/ui.js"></script>
-<script src="../../core/js/utils.js"></script>
-<script>
-    var domFiles = document.getElementById("files");
+    <script src="../../core/lib/interface.js"></script>
+    <script src="../../core/js/ui.js"></script>
+    <script src="../../core/js/utils.js"></script>
+    <script>
+      const domFiles = document.getElementById("files");
+      const domLogs = document.getElementById("logs");
 
-    function logToWatch(message) {
+      function logToWatch(message) {
         const logCommand = `
           (function() {
             const logFile = "clinikali.log.txt";
             const timestamp = new Date().toISOString();
-            const logEntry = \`\${timestamp}: \${message}\\n\`;
-            const file = require("Storage").open(logFile, "a");
-            file.write(logEntry);
+            const logEntry = \`[\${timestamp}] \${message}\\n\`;
+            require("Storage").open(logFile, "a").write(logEntry);
           })()
         `;
         Puck.eval(logCommand);
-    }
+      }
 
-    function downloadFile(filename, callback) {
+      function downloadFile(filename, callback) {
         Util.showModal(`Downloading ${filename}...`);
         Util.readStorageFile(filename, (data) => {
-            Util.hideModal();
-            logToWatch(`File downloaded via interface: ${filename}`);
-            callback(data);
+          Util.hideModal();
+          logToWatch(`File downloaded via interface: ${filename}`);
+          callback(data);
         });
-    }
+      }
 
-    function saveCSV(data, title) {
+      function saveCSV(data, title) {
         Util.saveFile(title, "text/csv", data);
         showToast("Download finished.", "success");
         logToWatch(`File saved to computer: ${title}`);
-    }
+      }
 
-    function getFileList() {
+      function saveTXT(data, title) {
+        Util.saveFile(title, "text/plain", data);
+        showToast("Download finished.", "success");
+        logToWatch(`File saved to computer: ${title}`);
+      }
+
+      function extractFileNumber(filename) {
+        if (!filename) return "";
+        const parts = filename.split("_");
+        return parts.length >= 2 ? `${parts[0]} ${parts[1]}` : filename;
+      }
+
+      function showLogs() {
+        const html = `
+          <div class="container">
+            <h2>Logs</h2>
+            <div class="columns">
+              <div class="column col-12">
+                <div class="card">
+                  <div class="card-header">
+                    <div class="card-title h5">Log File</div>
+                  </div>
+                  <div class="card-footer">
+                    <button class="btn btn-primary" filename="clinikali.log.txt" task="downloadlog">Download Log</button>
+                    <button class="btn btn-default" filename="clinikali.log.txt" task="deletelog">Clear Log</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+
+        domLogs.innerHTML = html;
+
+        const buttons = domLogs.querySelectorAll("button");
+        buttons.forEach((button) => {
+          button.addEventListener("click", (event) => {
+            const filename = event.currentTarget.getAttribute("filename");
+            const task = event.currentTarget.getAttribute("task");
+
+            if (task === "downloadlog") {
+              downloadFile(filename, (data) => saveTXT(data, filename));
+            } else if (task === "deletelog") {
+              Util.showModal("Clearing log file...");
+              Puck.eval(
+                `require("Storage").open("clinikali.log.txt","w").write("")`,
+                () => {
+                  Util.hideModal();
+                  logToWatch("Log file cleared via interface");
+                  showToast("Log file cleared.", "success");
+                },
+              );
+            }
+          });
+        });
+      }
+
+      function getFileList() {
         Util.showModal("Loading File List...");
         domFiles.innerHTML = "";
 
-        // List all files with the new PID-based format
         Puck.eval(
-            `require("Storage").list(/^P\\d{3}_\\d{4}-\\d{2}-\\d{2}_[a-z]\\.csv$/,{sf:1})`,
-            (files) => {
-                var html = `
+          `require("Storage").list(/\\d+_\\d+-\\d+-\\d+\\.csv/, { sf: 1 })`,
+          (files) => {
+            let html = `
             <div class="container">
+              <form class="form-horizontal mb-2" id="pidForm">
+                <div class="form-group">
+                  <div class="col-3">
+                    <label class="form-label" for="pidInput">Patient ID</label>
+                    <input class="form-input" type="number" id="pidInput" min="1" max="99" placeholder="Enter PID (1-99)">
+                  </div>
+                  <div class="col-3 mt-2">
+                    <button type="submit" class="btn btn-primary">Update PID</button>
+                  </div>
+                </div>
+              </form>
+
               <h2>Files</h2>
-              <div class="columns">`;
 
-                files.forEach((filename) => {
-                    // Split filename into parts: PID, date, and letter
-                    const parts = filename.split('_');
-                    const displayName = `${parts[0]} ${parts[1]} ${parts[2].charAt(0)}`;
+              <table class="table table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>`;
 
-                    html += `
-                <div class="column col-12">
-                  <div class="card">
-                    <div class="card-header">
-                      <div class="card-title h5">File ${displayName}</div>
-                    </div>
-                    <div class="card-footer">
-                      <button class="btn btn-primary" filename="${filename}" task="download">Download CSV</button>
-                      <button class="btn btn-default" filename="${filename}" task="delete">Delete</button>
-                    </div>
-                  </div>
-                </div>`;
-                });
-
-                if (files.length === 0) {
-                    html += `
-                <div class="column col-12">
-                  <div class="card-header">
-                    <div class="card-title h5">No files</div>
-                    <div class="card-subtitle text-gray">No recorded data found</div>
-                  </div>
-                </div>`;
-                }
-
+            if (files.length === 0) {
+              html += `
+                <tr>
+                  <td colspan="2">No recorded data found</td>
+                </tr>`;
+            } else {
+              files.forEach((filename) => {
+                const displayName = extractFileNumber(filename);
                 html += `
-              </div>
+                  <tr>
+                    <td>File ${displayName}</td>
+                    <td>
+                      <button class="btn btn-primary btn-sm" filename="${filename}" task="download">Download CSV</button>
+                      <button class="btn btn-default btn-sm" filename="${filename}" task="delete">Delete</button>
+                    </td>
+                  </tr>`;
+              });
+            }
+
+            html += `
+                </tbody>
+              </table>
             </div>`;
 
-                domFiles.innerHTML = html;
-                Util.hideModal();
-                logToWatch("File list accessed via interface");
+            domFiles.innerHTML = html;
+            Util.hideModal();
+            logToWatch("File list accessed via interface");
 
-                // Add button handlers
-                var buttons = domFiles.querySelectorAll("button");
-                for (var i = 0; i < buttons.length; i++) {
-                    buttons[i].addEventListener("click", (event) => {
-                        var button = event.currentTarget;
-                        var filename = button.getAttribute("filename");
-                        var task = button.getAttribute("task");
+            // Add button handlers
+            const buttons = domFiles.querySelectorAll("button");
+            buttons.forEach((button) => {
+              button.addEventListener("click", (event) => {
+                const filename = event.currentTarget.getAttribute("filename");
+                const task = event.currentTarget.getAttribute("task");
 
-                        switch (task) {
-                            case "download":
-                                downloadFile(filename, (data) => saveCSV(data, filename));
-                                break;
-
-                            case "delete":
-                                Util.showModal(`Deleting ${filename}...`);
-                                Util.eraseStorageFile(filename, () => {
-                                    Util.hideModal();
-                                    logToWatch(`File deleted via interface: ${filename}`);
-                                    getFileList();
-                                });
-                                break;
-                        }
-                    });
+                if (task === "download") {
+                  downloadFile(filename, (data) => saveCSV(data, filename));
+                } else if (task === "delete") {
+                  Util.showModal(`Deleting ${filename}...`);
+                  Util.eraseStorageFile(filename, () => {
+                    Util.hideModal();
+                    logToWatch(`File deleted via interface: ${filename}`);
+                    getFileList();
+                  });
                 }
-            },
-        );
-    }
+              });
+            });
 
-    // Initialize when page loads
-    function onInit() {
+            // Add PID form handler
+            const pidForm = document.getElementById("pidForm");
+            pidForm.addEventListener("submit", (e) => {
+              e.preventDefault();
+              const pidInput = document.getElementById("pidInput");
+              const pid = pidInput.value;
+
+              if (pid && pid >= 1 && pid <= 99) {
+                const paddedPid = pid.toString().padStart(2, "0");
+                Puck.eval(
+                  `
+                  (function() {
+                    const settings = require("Storage").readJSON("clinikali.json", 1) || {};
+                    settings.pid = "${paddedPid}";
+                    require("Storage").writeJSON("clinikali.json", settings);
+                    if (WIDGETS["clinikali"]) WIDGETS["clinikali"].reload();
+                  })()
+                `,
+                  (result) => {
+                    showToast("Patient ID updated successfully", "success");
+                    pidInput.value = "";
+                  },
+                );
+              } else {
+                showToast(
+                  "Please enter a valid number between 1 and 99",
+                  "error",
+                );
+              }
+            });
+
+            // Add search functionality
+            const searchInput = document.getElementById("searchInput");
+            searchInput.addEventListener("input", (e) => {
+              const searchTerm = e.target.value.toLowerCase();
+              const rows = domFiles.querySelectorAll("tbody tr");
+
+              rows.forEach((row) => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? "" : "none";
+              });
+            });
+          },
+        );
+      }
+
+      // Initialize when page loads
+      function onInit() {
         getFileList();
-    }
-</script>
-</body>
+        showLogs();
+      }
+    </script>
+  </body>
 </html>

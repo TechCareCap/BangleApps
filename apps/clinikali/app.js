@@ -173,49 +173,157 @@ function toggleSensor(sensorName) {
   }
 }
 
+const NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+const NORDIC_RX_CHARACTERISTIC = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+const NORDIC_TX_CHARACTERISTIC = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+
+NRF.setServices(
+  {
+    [NORDIC_SERVICE]: {
+      [NORDIC_TX_CHARACTERISTIC]: {
+        notify: true,
+        readable: true,
+        writable: true,
+        indicate: true,
+      },
+      [NORDIC_RX_CHARACTERISTIC]: {
+        value: "",
+        readable: true, // optional, default is false
+        writable: true, // optional, default is false
+        notify: true, // optional, default is false
+        indicate: true, // optional, default is false
+        description: "My Characteristic", // optional, default is null,
+        security: {
+          // optional - see NRF.setSecurity
+          read: {
+            // optional
+            encrypted: false, // optional, default is false
+            mitm: false, // optional, default is false
+            lesc: false, // optional, default is false
+            signed: false, // optional, default is false
+          },
+          write: {
+            // optional
+            encrypted: false, // optional, default is false
+            mitm: false, // optional, default is false
+            lesc: false, // optional, default is false
+            signed: false, // optional, default is false
+          },
+        },
+        onConnect: () => {
+          console.log("Connected to device");
+        },
+        onWrite: (evt) => {
+          console.log("onWrite", evt);
+          logMessage(`[onWrite] ${evt.value}`, "info");
+
+          try {
+            let dataStr = "";
+            for (let i = 0; i < evt.value.length; i++) {
+              dataStr += String.fromCharCode(evt.value[i]);
+            }
+
+            const message = JSON.parse(dataStr);
+            logMessage(`[onWrite] ${JSON.stringify(message)}`, "info");
+            console.log("Received message:", message);
+
+            if (message.pid !== undefined) {
+              // Update the settings
+              const currentSettings = getAppSettings();
+              currentSettings.pid = message.pid.toString().padStart(2, "0");
+              require("Storage").writeJSON("clinikali.json", currentSettings);
+              console.log("Updated PID to:", currentSettings.pid);
+              logMessage(
+                `[onWrite] Updated PID to: ${currentSettings.pid}`,
+                "info",
+              );
+
+              // Optional: Reload widget if needed
+              if (WIDGETS["clinikali"]) {
+                WIDGETS["clinikali"].reload();
+              }
+            }
+          } catch (err) {
+            console.log("Error processing message:", err);
+          }
+        },
+      },
+    },
+  },
+  { advertise: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"] },
+);
+
 /**
  * @param {string} fileName
  *
  * @returns {MenuInstance}
  */
 function sendCsvFile(fileName) {
+  console.log("Starting file send:", fileName);
+
   const file = require("Storage").open(fileName, "r");
   const fileLength = file.getLength();
+  console.log("File length:", fileLength);
 
   if (fileLength === 0) {
-    logMessage(`[showFileMenu] File ${fileName} not found`, "error");
-
-    return showFilesMenu();
+    console.log("Empty file!");
+    return;
   }
 
-  const macAddress = getAppSettings()["macAddress"];
+  const content = file.read(fileLength);
+  console.log("Read content length:", content ? content.length : 0);
 
-  NRF.connect(macAddress, {})
-    .then(() => {
-      logMessage(`[showFileMenu] Connected to ${macAddress}`, "info");
+  const dataToSend = JSON.stringify({
+    t: "file",
+    n: fileName,
+    c: content,
+    timestamp: Date.now(),
+  });
 
-      Bluetooth.println(
-        JSON.stringify({
-          c: file.read(fileLength),
-          n: fileName,
-          t: "file",
-          timestamp: Date.now(),
-        }),
+  NRF.connect("e8:f7:91:fb:61:db public", {})
+    .then((gatt) => {
+      console.log("Connected to device");
+
+      // Find the Nordic UART service
+      let nordicService = gatt.getPrimaryService(
+        "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
       );
-
-      logMessage(`[showFileMenu] File send to ${macAddress}`, "info");
+      return nordicService.then((service) => {
+        console.log("Found Nordic service");
+        // Get the TX characteristic
+        return service.getCharacteristic(
+          "6e400002-b5a3-f393-e0a9-e50e24dcca9e",
+        );
+      });
     })
-    .catch(() => {
-      logMessage(`[showFileMenu] Fail to connect to ${macAddress}`, "error");
+    .then((txChar) => {
+      console.log("Found TX characteristic");
 
-      const now = new Date().getHours();
+      // Send data in chunks
+      const chunkSize = 100;
+      let position = 0;
 
-      if (now >= 0 && now < 1) {
-        setTimeout(() => sendCsvFile(fileName), 60000 * 5);
+      function sendNextChunk() {
+        if (position >= dataToSend.length) {
+          console.log("All data sent");
+          return;
+        }
+
+        const chunk = dataToSend.slice(position, position + chunkSize);
+        txChar.writeValue(chunk).then(() => {
+          console.log(
+            `Sent chunk ${Math.floor(position / chunkSize) + 1} of ${Math.ceil(
+              dataToSend.length / chunkSize,
+            )}`,
+          );
+          position += chunkSize;
+          sendNextChunk();
+        });
       }
-    });
 
-  return showFilesMenu();
+      sendNextChunk();
+    })
+    .catch((err) => console.log("Error:", err));
 }
 
 /**
