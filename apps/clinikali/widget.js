@@ -421,7 +421,10 @@
     const currentDate = new Date().toISOString().split("T")[0];
     const filename = `${appSettings.pid}_${currentDate}.csv`;
 
-    if (!appSettings.file?.startsWith(`${appSettings.pid}_${currentDate}`)) {
+    if (
+      appSettings.file &&
+      !appSettings.file.startsWith(`${appSettings.pid}_${currentDate}`)
+    ) {
       updateAppSettings({ file: filename });
 
       if (
