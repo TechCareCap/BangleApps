@@ -1,7 +1,7 @@
 {
   "id": "clinikali",
-  "name": "clinikali",
-  "shortName": "clinikali",
+  "name": "BioTempo",
+  "shortName": "BioTempo",
   "version": "0.1",
   "description": "Record activity, heart rate and more in the background, then download to your PC.",
   "icon": "app.png",
