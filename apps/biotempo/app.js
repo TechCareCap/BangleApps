@@ -1,5 +1,5 @@
-Bangle.setBarometerPower(true, "clinikali");
-Bangle.setHRMPower(true, "clinikali");
+Bangle.setBarometerPower(true, "biotempo");
+Bangle.setHRMPower(true, "biotempo");
 
 Bangle.loadWidgets();
 Bangle.drawWidgets();
@@ -14,7 +14,7 @@ NRF.wake();
  * @property {number} localeOffset
  * @property {string} macAddress
  * @property {string} pid
- * @property {number} timePeriod
+ * @property {number} samplingFrequency
  */
 
 /**
@@ -33,7 +33,7 @@ function logMessage(message, severity) {
 
   console.log(logEntry);
 
-  return require("Storage").open("clinikali.log.txt", "a").write(logEntry);
+  return require("Storage").open("biotempo.log.txt", "a").write(logEntry);
 }
 
 /**
@@ -48,10 +48,10 @@ function getAppSettings() {
     localeOffset: 1,
     macAddress: "E8:F7:91:FB:61:DB",
     pid: "05",
-    timePeriod: 1,
+    samplingFrequency: 1,
   };
 
-  const appSettings = require("Storage").readJSON("clinikali.json", 1) || {};
+  const appSettings = require("Storage").readJSON("biotempo.json", 1) || {};
 
   return Object.assign({}, defaultSettings, appSettings);
 }
@@ -65,25 +65,28 @@ function updateAppSettings(settings) {
   const currentSettings = getAppSettings();
 
   require("Storage").writeJSON(
-    "clinikali.json",
+    "biotempo.json",
     Object.assign(currentSettings, settings),
   );
   logMessage("[updateAppSettings] Settings updated", "info");
 
-  if (WIDGETS["clinikali"]) {
-    WIDGETS["clinikali"].reload();
+  if (WIDGETS["biotempo"]) {
+    WIDGETS["biotempo"].reload();
   }
 }
 
 /**
- * @param {number} newTimePeriod
+ * @param {number} newSamplingFrequency
  *
  * @returns {void}
  */
-function handleTimePeriodChange(newTimePeriod) {
-  updateAppSettings({ isRecording: false, timePeriod: newTimePeriod });
+function handleSamplingFrequencyChange(newSamplingFrequency) {
+  updateAppSettings({
+    isRecording: false,
+    samplingFrequency: newSamplingFrequency,
+  });
   logMessage(
-    `[handleTimePeriodChange] Update time period to ${newTimePeriod}`,
+    `[handleSamplingFrequencyChange] Update sampling frequency to ${newSamplingFrequency}`,
     "info",
   );
 }
@@ -122,8 +125,8 @@ function toggleRecorder() {
     "info",
   );
 
-  if (WIDGETS["clinikali"]) {
-    WIDGETS["clinikali"].setRecording(!isRecording);
+  if (WIDGETS["biotempo"]) {
+    WIDGETS["biotempo"].setRecording(!isRecording);
   }
 
   if (isRecording) {
@@ -318,21 +321,21 @@ function showFilesMenu() {
 function showMainMenu() {
   /** @type {Menu} */
   const menu = {
-    "": { title: "Clinikali" },
+    "": { title: "BioTempo" },
     "< Back": () => load(),
     Record: {
       onchange: () => toggleRecorder(),
       value: getAppSettings()["isRecording"],
     },
     Sensors: () => showSensorsMenu(),
-    Period: {
+    Frequency: {
       format: (/** @type {number} */ value) => `${value} Hz`,
       onchange: (/** @type {number} */ newValue) =>
-        handleTimePeriodChange(newValue),
+        handleSamplingFrequencyChange(newValue),
       max: 60,
       min: 1,
       step: 1,
-      value: getAppSettings()["timePeriod"],
+      value: getAppSettings()["samplingFrequency"],
     },
     "View files": () => showFilesMenu(),
   };

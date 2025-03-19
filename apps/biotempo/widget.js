@@ -7,7 +7,7 @@
    * @property {number} localeOffset
    * @property {string} macAddress
    * @property {string} pid
-   * @property {number} timePeriod
+   * @property {number} samplingFrequency
    */
 
   /**
@@ -42,7 +42,7 @@
 
     console.log(logEntry);
 
-    return require("Storage").open("clinikali.log.txt", "a").write(logEntry);
+    return require("Storage").open("biotempo.log.txt", "a").write(logEntry);
   }
 
   /**
@@ -57,10 +57,10 @@
       localeOffset: 1,
       macAddress: "E8:F7:91:FB:61:DB",
       pid: "05",
-      timePeriod: 1,
+      samplingFrequency: 1,
     };
 
-    const appSettings = require("Storage").readJSON("clinikali.json", 1) || {};
+    const appSettings = require("Storage").readJSON("biotempo.json", 1) || {};
 
     return Object.assign({}, defaultSettings, appSettings);
   }
@@ -74,7 +74,7 @@
     const currentSettings = getAppSettings();
 
     require("Storage").writeJSON(
-      "clinikali.json",
+      "biotempo.json",
       Object.assign(currentSettings, settings),
     );
     logMessage("[updateAppSettings] Settings updated", "info");
@@ -155,11 +155,11 @@
           },
           start: () => {
             Bangle.on("HRM", onHRM);
-            Bangle.setHRMPower(true, "clinikali");
+            Bangle.setHRMPower(true, "biotempo");
           },
           stop: () => {
             Bangle.removeListener("HRM", onHRM);
-            Bangle.setHRMPower(false, "clinikali");
+            Bangle.setHRMPower(false, "biotempo");
           },
         };
       };
@@ -187,11 +187,11 @@
             return result;
           },
           start: () => {
-            Bangle.setBarometerPower(true, "clinikali");
+            Bangle.setBarometerPower(true, "biotempo");
             Bangle.on("pressure", onPressure);
           },
           stop: () => {
-            Bangle.setBarometerPower(false, "clinikali");
+            Bangle.setBarometerPower(false, "biotempo");
             Bangle.removeListener("pressure", onPressure);
           },
         };
@@ -383,10 +383,10 @@
       }
     }
 
-    writeSetup = setInterval(writeData, appSettings.timePeriod * 1000);
+    writeSetup = setInterval(writeData, appSettings.samplingFrequency * 1000);
   }
 
-  WIDGETS["clinikali"] = {
+  WIDGETS["biotempo"] = {
     area: "tl",
     width: 0,
     draw: () => {},
@@ -406,8 +406,8 @@
 
       updateAppSettings({ isRecording: isOn });
 
-      if (WIDGETS["clinikali"]) {
-        WIDGETS["clinikali"].reload();
+      if (WIDGETS["biotempo"]) {
+        WIDGETS["biotempo"].reload();
       }
 
       return Promise.resolve(appSettings.isRecording);

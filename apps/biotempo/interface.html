@@ -28,7 +28,7 @@
     </form>
 
     <!-- Main Settings Form (initially hidden) -->
-    <form id="settings-form" class="form-horizontal" style="display: none;">
+    <form id="settings-form" class="form-horizontal" style="display: none">
       <div class="form-group">
         <div class="col-3 col-sm-12">
           <label class="form-label">Enabled Sensors</label>
@@ -119,11 +119,13 @@
           </p>
         </div>
       </div>
-
+      g
       <div class="form-group">
         <div class="col-12">
           <button class="btn btn-primary" type="submit">Update</button>
-          <button class="btn btn-secondary" id="lock-button" type="button">Lock Settings</button>
+          <button class="btn btn-secondary" id="lock-button" type="button">
+            Lock Settings
+          </button>
         </div>
       </div>
     </form>
@@ -169,7 +171,7 @@
       const passcodeHint = document.getElementById("passcode-hint");
       const lockButton = document.getElementById("lock-button");
       const CORRECT_PASSCODE = "75018";
-      
+
       // Function to lock the settings (hide settings form, show auth form)
       function lockSettings() {
         settingsForm.style.display = "none";
@@ -178,19 +180,19 @@
         document.getElementById("passcode").value = "";
         passcodeHint.textContent = "";
       }
-      
+
       // Add event listener to lock button
       lockButton.addEventListener("click", lockSettings);
-      
+
       authForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const passcode = document.getElementById("passcode").value;
-        
+
         if (passcode === CORRECT_PASSCODE) {
           // Hide auth form and show settings form
           authForm.style.display = "none";
           settingsForm.style.display = "block";
-          
+
           // Load settings for the form
           loadSettings();
         } else {
@@ -207,8 +209,6 @@
         Puck.eval(
           `require("Storage").list(${filePattern}, { sf: 1 })`,
           (files) => {
-            console.log("files", files, filePattern);
-
             if (!Array.isArray(files) || files.length === 0) {
               const row = document.createElement("tr");
               const cell = document.createElement("td");
@@ -267,7 +267,7 @@
       function loadCsvFiles() {
         loadFiles(
           "csv-table-body",
-          "/\\\\d+_\\\\d+-\\\\d+-\\\\d+\\\\.csv/",
+          'new RegExp("\\\\d+_\\\\d+-\\\\d+-\\\\d+\\\\.csv")',
           "No CSV files found",
         );
       }
@@ -275,7 +275,7 @@
       function loadLogFiles() {
         loadFiles(
           "log-table-body",
-          'new RegExp("clinikali.log.txt")',
+          'new RegExp("biotempo.log.txt")',
           "No log files found",
         );
       }
@@ -285,7 +285,9 @@
       const pidInput = document.getElementById("pid");
       const samplingFrequencyInput =
         document.getElementById("samplingFrequency");
-      const recordingToggle = document.querySelector('input[name="isRecording"]');
+      const recordingToggle = document.querySelector(
+        'input[name="isRecording"]',
+      );
 
       // Get the hint elements
       const macAddressHint = macAddressInput.nextElementSibling;
@@ -295,17 +297,18 @@
       // Validation functions
       function validateMacAddress() {
         const value = macAddressInput.value.trim();
-        
+
         // If empty, it's valid (not required)
         if (!value) {
           macAddressHint.textContent = "";
           macAddressHint.classList.remove("text-error");
           return true;
         }
-        
+
         const pattern = /^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$/;
         if (!pattern.test(value)) {
-          macAddressHint.textContent = "Invalid MAC address format. Use XX:XX:XX:XX:XX:XX";
+          macAddressHint.textContent =
+            "Invalid MAC address format. Use XX:XX:XX:XX:XX:XX";
           macAddressHint.classList.add("text-error");
           return false;
         } else {
@@ -317,14 +320,14 @@
 
       function validatePid() {
         const value = pidInput.value.trim();
-        
+
         // If empty, it's valid (not required)
         if (!value) {
           pidHint.textContent = "";
           pidHint.classList.remove("text-error");
           return true;
         }
-        
+
         const numValue = parseInt(value);
         if (isNaN(numValue) || numValue < 1 || numValue > 99) {
           pidHint.textContent = "Patient ID must be between 1 and 99";
@@ -339,17 +342,18 @@
 
       function validateFrequency() {
         const value = samplingFrequencyInput.value.trim();
-        
+
         // If empty, it's valid (not required)
         if (!value) {
           frequencyHint.textContent = "";
           frequencyHint.classList.remove("text-error");
           return true;
         }
-        
+
         const numValue = parseInt(value);
         if (isNaN(numValue) || numValue < 1) {
-          frequencyHint.textContent = "Sampling frequency must be a positive integer";
+          frequencyHint.textContent =
+            "Sampling frequency must be a positive integer";
           frequencyHint.classList.add("text-error");
           return false;
         } else {
@@ -375,41 +379,47 @@
         // Only proceed if all validations pass
         if (isMacValid && isPidValid && isFrequencyValid) {
           const formData = new FormData(form);
-          
+
           // Create an object with only the fields that have values
           const updates = {};
-          
+
           // Get the values from form
           const enabledSensors = formData.getAll("enabledSensors");
           const macAddress = formData.get("macAddress");
           const pid = formData.get("pid");
           const samplingFrequency = formData.get("samplingFrequency");
-          
+
           // Always include enabledSensors
           updates.enabledSensors = enabledSensors;
-          
+
           // Check if any field other than MAC address has changed
-          Util.readStorageJSON("clinikali.json", (data) => {
+          Util.readStorageJSON("biotempo.json", (data) => {
             let shouldDisableRecording = false;
-            
+
             // Compare with current settings to see if anything changed
             if (data) {
               // Check if enabledSensors changed
-              if (JSON.stringify(data.enabledSensors) !== JSON.stringify(enabledSensors)) {
+              if (
+                JSON.stringify(data.enabledSensors) !==
+                JSON.stringify(enabledSensors)
+              ) {
                 shouldDisableRecording = true;
               }
-              
+
               // Check if pid changed
               if (pid && data.pid !== String(pid).padStart(2, "0")) {
                 shouldDisableRecording = true;
               }
-              
+
               // Check if samplingFrequency changed
-              if (samplingFrequency && data.samplingFrequency !== parseInt(samplingFrequency)) {
+              if (
+                samplingFrequency &&
+                data.samplingFrequency !== parseInt(samplingFrequency)
+              ) {
                 shouldDisableRecording = true;
               }
             }
-            
+
             // Set isRecording based on whether critical fields changed
             if (shouldDisableRecording) {
               updates.isRecording = false;
@@ -419,30 +429,30 @@
               // Use the value from the form
               updates.isRecording = formData.get("isRecording") === "on";
             }
-            
+
             // Include other fields if they have values
             if (macAddress) {
               updates.macAddress = macAddress;
             }
-            
+
             if (pid) {
               updates.pid = String(pid).padStart(2, "0");
             }
-            
+
             if (samplingFrequency) {
               updates.samplingFrequency = parseInt(samplingFrequency);
             }
-            
+
             // Merge existing data with updates
             const updatedData = Object.assign({}, data, updates);
-            Util.writeStorage("clinikali.json", JSON.stringify(updatedData));
+            Util.writeStorage("biotempo.json", JSON.stringify(updatedData));
           });
         }
       });
 
       function loadSettings() {
-        // Load default values from clinikali.json
-        Util.readStorageJSON("clinikali.json", (data) => {
+        // Load default values from biotempo.json
+        Util.readStorageJSON("biotempo.json", (data) => {
           if (!data) return; // If no data exists yet
 
           // Set enabled sensors checkboxes
