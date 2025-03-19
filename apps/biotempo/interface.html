@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../../css/spectre.min.css" />
+    <title>BioTempo</title>
+  </head>
+  <body>
+    <!-- Authentication Form -->
+    <form id="auth-form" class="form-horizontal">
+      <div class="form-group">
+        <div class="col-3 col-sm-12">
+          <label class="form-label" for="passcode">Passcode</label>
+        </div>
+        <div class="col-9 col-sm-12">
+          <input
+            class="form-input"
+            id="passcode"
+            name="passcode"
+            type="password"
+            placeholder="Enter passcode to access settings"
+          />
+          <p class="form-input-hint text-error" id="passcode-hint"></p>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+
+    <!-- Main Settings Form (initially hidden) -->
+    <form id="settings-form" class="form-horizontal" style="display: none">
+      <div class="form-group">
+        <div class="col-3 col-sm-12">
+          <label class="form-label">Enabled Sensors</label>
+        </div>
+        <div class="col-9 col-sm-12">
+          <label class="form-checkbox">
+            <input type="checkbox" name="enabledSensors" value="accel" />
+            <i class="form-icon"></i> Accelerometer
+          </label>
+          <label class="form-checkbox">
+            <input type="checkbox" name="enabledSensors" value="hrm" />
+            <i class="form-icon"></i> Heart Rate
+          </label>
+          <label class="form-checkbox">
+            <input type="checkbox" name="enabledSensors" value="baro" />
+            <i class="form-icon"></i> Temperature
+          </label>
+        </div>
+      </div>
+
+      <!-- <div class="form-group">
+        <div class="col-3 col-sm-12"></div>
+        <div class="col-9 col-sm-12">
+          <label class="form-switch">
+            <input type="checkbox" name="isRecording" />
+            <i class="form-icon"></i> Toggle Recording
+          </label>
+        </div>
+      </div> -->
+
+      <div class="form-group">
+        <div class="col-3 col-sm-12">
+          <label class="form-label" for="macAddress">Mac Address</label>
+        </div>
+        <div class="col-9 col-sm-12">
+          <input
+            class="form-input"
+            id="macAddress"
+            name="macAddress"
+            pattern="^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$"
+            type="text"
+          />
+          <p class="form-input-hint">
+            <!-- Validation message will be provided by JS -->
+          </p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="col-3 col-sm-12">
+          <label class="form-label" for="pid">Patient ID</label>
+        </div>
+        <div class="col-9 col-sm-12">
+          <input
+            class="form-input"
+            id="pid"
+            name="pid"
+            max="99"
+            min="1"
+            type="number"
+          />
+          <p class="form-input-hint">
+            <!-- Validation message will be provided by JS -->
+          </p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="col-3 col-sm-12">
+          <label class="form-label" for="samplingFrequency"
+            >Sampling Frequency (Hertz)</label
+          >
+        </div>
+        <div class="col-9 col-sm-12">
+          <input
+            class="form-input"
+            id="samplingFrequency"
+            name="samplingFrequency"
+            min="1"
+            type="number"
+          />
+          <p class="form-input-hint">
+            <!-- Validation message will be provided by JS -->
+          </p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="col-12">
+          <button class="btn btn-primary" type="submit">Update</button>
+          <button class="btn btn-secondary" id="lock-button" type="button">
+            Lock Settings
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Tables are always visible -->
+    <table class="table table-striped table-hover">
+      <caption>
+        Recorded CSV Files
+      </caption>
+      <thead>
+        <tr>
+          <th>File name</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="csv-table-body">
+        <!-- Will be populated by JS -->
+      </tbody>
+    </table>
+
+    <table class="table table-striped table-hover">
+      <caption>
+        Log Files
+      </caption>
+      <thead>
+        <tr>
+          <th>File name</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="log-table-body">
+        <!-- Will be populated by JS -->
+      </tbody>
+    </table>
+
+    <script src="../../core/lib/interface.js"></script>
+    <script src="../../core/js/ui.js"></script>
+    <script src="../../core/js/utils.js"></script>
+    <script>
+      // Authentication form handling
+      const authForm = document.getElementById("auth-form");
+      const settingsForm = document.getElementById("settings-form");
+      const passcodeHint = document.getElementById("passcode-hint");
+      const lockButton = document.getElementById("lock-button");
+      const CORRECT_PASSCODE = "75018";
+
+      // Function to lock the settings (hide settings form, show auth form)
+      function lockSettings() {
+        settingsForm.style.display = "none";
+        authForm.style.display = "block";
+        // Clear the passcode field and any error messages
+        document.getElementById("passcode").value = "";
+        passcodeHint.textContent = "";
+      }
+
+      // Add event listener to lock button
+      lockButton.addEventListener("click", lockSettings);
+
+      authForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const passcode = document.getElementById("passcode").value;
+
+        if (passcode === CORRECT_PASSCODE) {
+          // Hide auth form and show settings form
+          authForm.style.display = "none";
+          settingsForm.style.display = "block";
+
+          // Load settings for the form
+          loadSettings();
+        } else {
+          // Show error message
+          passcodeHint.textContent = "Incorrect passcode. Please try again.";
+        }
+      });
+
+      // Rest of the code remains the same
+      function loadFiles(tableBodyId, filePattern, noFilesMessage) {
+        const tableBody = document.getElementById(tableBodyId);
+        tableBody.innerHTML = ""; // Clear existing content
+
+        Puck.eval(
+          `require("Storage").list(${filePattern}, { sf: 1 })`,
+          (files) => {
+            if (!Array.isArray(files) || files.length === 0) {
+              const row = document.createElement("tr");
+              const cell = document.createElement("td");
+              cell.setAttribute("colspan", "2");
+              const text = document.createTextNode(noFilesMessage);
+              cell.appendChild(text);
+              row.appendChild(cell);
+              tableBody.appendChild(row);
+              return;
+            }
+
+            for (const file of files) {
+              const row = document.createElement("tr");
+
+              const fileCell = document.createElement("td");
+              const fileCellText = document.createTextNode(file);
+              fileCell.appendChild(fileCellText);
+              row.appendChild(fileCell);
+
+              const downloadButton = document.createElement("button");
+              downloadButton.classList.add("btn", "btn-primary");
+              downloadButton.type = "button";
+              downloadButton.textContent = "Download";
+              downloadButton.addEventListener("click", () => {
+                Util.showModal(`Downloading ${file}...`);
+                Util.readStorageFile(file, (data) => {
+                  Util.hideModal();
+                  Util.saveFile(file, "text/csv", data);
+                });
+              });
+
+              const deleteButton = document.createElement("button");
+              deleteButton.classList.add("btn", "btn-error");
+              deleteButton.type = "button";
+              deleteButton.textContent = "Delete";
+              deleteButton.addEventListener("click", () => {
+                Util.showModal(`Deleting ${file}...`);
+                Util.eraseStorageFile(file, () => {
+                  Util.hideModal();
+                  // Reload the same file list that was deleted from
+                  loadFiles(tableBodyId, filePattern, noFilesMessage);
+                });
+              });
+
+              const actionsCell = document.createElement("td");
+              actionsCell.appendChild(downloadButton);
+              actionsCell.appendChild(deleteButton);
+              row.appendChild(actionsCell);
+
+              tableBody.appendChild(row);
+            }
+          },
+        );
+      }
+
+      function loadCsvFiles() {
+        loadFiles(
+          "csv-table-body",
+          'new RegExp("\\\\d+_\\\\d+-\\\\d+-\\\\d+\\\\.csv")',
+          "No CSV files found",
+        );
+      }
+
+      function loadLogFiles() {
+        loadFiles(
+          "log-table-body",
+          'new RegExp("biotempo.log.txt")',
+          "No log files found",
+        );
+      }
+
+      const form = document.getElementById("settings-form");
+      const macAddressInput = document.getElementById("macAddress");
+      const pidInput = document.getElementById("pid");
+      const samplingFrequencyInput =
+        document.getElementById("samplingFrequency");
+      const recordingToggle = document.querySelector(
+        'input[name="isRecording"]',
+      );
+
+      // Get the hint elements
+      const macAddressHint = macAddressInput.nextElementSibling;
+      const pidHint = pidInput.nextElementSibling;
+      const frequencyHint = samplingFrequencyInput.nextElementSibling;
+
+      // Validation functions
+      function validateMacAddress() {
+        const value = macAddressInput.value.trim();
+
+        // If empty, it's valid (not required)
+        if (!value) {
+          macAddressHint.textContent = "";
+          macAddressHint.classList.remove("text-error");
+          return true;
+        }
+
+        const pattern = /^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$/;
+        if (!pattern.test(value)) {
+          macAddressHint.textContent =
+            "Invalid MAC address format. Use XX:XX:XX:XX:XX:XX";
+          macAddressHint.classList.add("text-error");
+          return false;
+        } else {
+          macAddressHint.textContent = "";
+          macAddressHint.classList.remove("text-error");
+          return true;
+        }
+      }
+
+      function validatePid() {
+        const value = pidInput.value.trim();
+
+        // If empty, it's valid (not required)
+        if (!value) {
+          pidHint.textContent = "";
+          pidHint.classList.remove("text-error");
+          return true;
+        }
+
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 1 || numValue > 99) {
+          pidHint.textContent = "Patient ID must be between 1 and 99";
+          pidHint.classList.add("text-error");
+          return false;
+        } else {
+          pidHint.textContent = "";
+          pidHint.classList.remove("text-error");
+          return true;
+        }
+      }
+
+      function validateFrequency() {
+        const value = samplingFrequencyInput.value.trim();
+
+        // If empty, it's valid (not required)
+        if (!value) {
+          frequencyHint.textContent = "";
+          frequencyHint.classList.remove("text-error");
+          return true;
+        }
+
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 1) {
+          frequencyHint.textContent =
+            "Sampling frequency must be a positive integer";
+          frequencyHint.classList.add("text-error");
+          return false;
+        } else {
+          frequencyHint.textContent = "";
+          frequencyHint.classList.remove("text-error");
+          return true;
+        }
+      }
+
+      // Add input event listeners for real-time validation
+      macAddressInput.addEventListener("input", validateMacAddress);
+      pidInput.addEventListener("input", validatePid);
+      samplingFrequencyInput.addEventListener("input", validateFrequency);
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        // Validate all inputs before submission
+        const isMacValid = validateMacAddress();
+        const isPidValid = validatePid();
+        const isFrequencyValid = validateFrequency();
+
+        // Only proceed if all validations pass
+        if (isMacValid && isPidValid && isFrequencyValid) {
+          const formData = new FormData(form);
+
+          // Create an object with only the fields that have values
+          const updates = {};
+
+          // Get the values from form
+          const enabledSensors = formData.getAll("enabledSensors");
+          const macAddress = formData.get("macAddress");
+          const pid = formData.get("pid");
+          const samplingFrequency = formData.get("samplingFrequency");
+
+          // Always include enabledSensors
+          updates.enabledSensors = enabledSensors;
+
+          // Check if any field other than MAC address has changed
+          Util.readStorageJSON("biotempo.json", (data) => {
+            let shouldDisableRecording = false;
+
+            // Compare with current settings to see if anything changed
+            if (data) {
+              // Check if enabledSensors changed
+              if (
+                JSON.stringify(data.enabledSensors) !==
+                JSON.stringify(enabledSensors)
+              ) {
+                shouldDisableRecording = true;
+              }
+
+              // Check if pid changed
+              if (pid && data.pid !== String(pid).padStart(2, "0")) {
+                shouldDisableRecording = true;
+              }
+
+              // Check if samplingFrequency changed
+              if (
+                samplingFrequency &&
+                data.samplingFrequency !== parseInt(samplingFrequency)
+              ) {
+                shouldDisableRecording = true;
+              }
+            }
+
+            // Set isRecording based on whether critical fields changed
+            if (shouldDisableRecording) {
+              updates.isRecording = false;
+              // Also update the UI to reflect this change
+              // recordingToggle.checked = false;
+            }
+            // else {
+            //   // Use the value from the form
+            //   updates.isRecording = formData.get("isRecording") === "on";
+            // }
+
+            // Include other fields if they have values
+            if (macAddress) {
+              updates.macAddress = macAddress;
+            }
+
+            if (pid) {
+              updates.pid = String(pid).padStart(2, "0");
+            }
+
+            if (samplingFrequency) {
+              updates.samplingFrequency = parseInt(samplingFrequency);
+            }
+
+            // Merge existing data with updates
+            const updatedData = Object.assign({}, data, updates);
+            Util.writeStorage("biotempo.json", JSON.stringify(updatedData));
+          });
+        }
+      });
+
+      function loadSettings() {
+        // Load default values from biotempo.json
+        Util.readStorageJSON("biotempo.json", (data) => {
+          if (!data) return; // If no data exists yet
+
+          // Set enabled sensors checkboxes
+          if (data.enabledSensors && Array.isArray(data.enabledSensors)) {
+            const checkboxes = document.querySelectorAll(
+              'input[name="enabledSensors"]',
+            );
+            checkboxes.forEach((checkbox) => {
+              if (data.enabledSensors.includes(checkbox.value)) {
+                checkbox.checked = true;
+              }
+            });
+          }
+
+          // Set recording toggle
+          // if (data.isRecording !== undefined) {
+          //   document.querySelector('input[name="isRecording"]').checked =
+          //     data.isRecording;
+          // }
+
+          // Set MAC address
+          if (data.macAddress) {
+            macAddressInput.value = data.macAddress;
+          }
+
+          // Set patient ID
+          if (data.pid) {
+            // Remove leading zeros for display in the number input
+            pidInput.value = parseInt(data.pid, 10);
+          }
+
+          // Set sampling frequency (using timePeriod from settings)
+          if (data.samplingFrequency) {
+            samplingFrequencyInput.value = data.samplingFrequency;
+          }
+
+          // Validate fields after setting values
+          validateMacAddress();
+          validatePid();
+          validateFrequency();
+        });
+      }
+
+      function onInit() {
+        // Load file tables immediately
+        loadCsvFiles();
+        loadLogFiles();
+      }
+    </script>
+  </body>
+</html>
