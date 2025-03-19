@@ -35,25 +35,21 @@
         </div>
         <div class="col-9 col-sm-12">
           <label class="form-checkbox">
-            <input
-              type="checkbox"
-              name="enabledSensors"
-              value="accelerometer"
-            />
+            <input type="checkbox" name="enabledSensors" value="accel" />
             <i class="form-icon"></i> Accelerometer
           </label>
           <label class="form-checkbox">
-            <input type="checkbox" name="enabledSensors" value="heartRate" />
+            <input type="checkbox" name="enabledSensors" value="hrm" />
             <i class="form-icon"></i> Heart Rate
           </label>
           <label class="form-checkbox">
-            <input type="checkbox" name="enabledSensors" value="temperature" />
+            <input type="checkbox" name="enabledSensors" value="baro" />
             <i class="form-icon"></i> Temperature
           </label>
         </div>
       </div>
 
-      <div class="form-group">
+      <!-- <div class="form-group">
         <div class="col-3 col-sm-12"></div>
         <div class="col-9 col-sm-12">
           <label class="form-switch">
@@ -61,7 +57,7 @@
             <i class="form-icon"></i> Toggle Recording
           </label>
         </div>
-      </div>
+      </div> -->
 
       <div class="form-group">
         <div class="col-3 col-sm-12">
@@ -119,7 +115,7 @@
           </p>
         </div>
       </div>
-      g
+
       <div class="form-group">
         <div class="col-12">
           <button class="btn btn-primary" type="submit">Update</button>
@@ -424,11 +420,12 @@
             if (shouldDisableRecording) {
               updates.isRecording = false;
               // Also update the UI to reflect this change
-              recordingToggle.checked = false;
-            } else {
-              // Use the value from the form
-              updates.isRecording = formData.get("isRecording") === "on";
+              // recordingToggle.checked = false;
             }
+            // else {
+            //   // Use the value from the form
+            //   updates.isRecording = formData.get("isRecording") === "on";
+            // }
 
             // Include other fields if they have values
             if (macAddress) {
@@ -468,10 +465,10 @@
           }
 
           // Set recording toggle
-          if (data.isRecording !== undefined) {
-            document.querySelector('input[name="isRecording"]').checked =
-              data.isRecording;
-          }
+          // if (data.isRecording !== undefined) {
+          //   document.querySelector('input[name="isRecording"]').checked =
+          //     data.isRecording;
+          // }
 
           // Set MAC address
           if (data.macAddress) {
@@ -501,9 +498,6 @@
         loadCsvFiles();
         loadLogFiles();
       }
-
-      // Initialize file tables on page load
-      document.addEventListener("DOMContentLoaded", onInit);
     </script>
   </body>
 </html>
