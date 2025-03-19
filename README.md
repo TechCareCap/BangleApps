@@ -536,7 +536,7 @@ The screen is parted in a widget and app area for lcd mode `direct`(default).
 You can use `g.setColor(r,g,b)` OR `g.setColor(16bitnumber)` - some common 16 bit colors are below:
 
 | color-name  | color-value |
-| :---------: | :---------: |
+|:-----------:|:-----------:|
 |    Black    |   0x0000    |
 |    Navy     |   0x000F    |
 |  DarkGreen  |   0x03E0    |
