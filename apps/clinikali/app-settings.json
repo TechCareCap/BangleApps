@@ -1,5 +1,0 @@
-{
-  "period": 1,
-  "recording": false,
-  "record": ["accel", "hrm", "baro"]
-}

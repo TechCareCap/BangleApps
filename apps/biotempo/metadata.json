@@ -1,0 +1,21 @@
+{
+  "id": "biotempo",
+  "name": "BioTempo",
+  "shortName": "BioTempo",
+  "version": "1.0",
+  "description": "Record activity, heart rate and more in the background, then download to your PC.",
+  "icon": "app.png",
+  "tags": "tool,outdoors,widget,clkinfo,health",
+  "supports": ["BANGLEJS2"],
+  "readme": "README.md",
+  "interface": "interface.html",
+  "storage": [
+    { "name": "biotempo.app.js", "url": "app.js" },
+    { "name": "biotempo.img", "url": "app-icon.js", "evaluate": true },
+    { "name": "biotempo.wid.js", "url": "widget.js" }
+  ],
+  "data": [
+    { "name": "biotempo.json", "url": "app-settings.json" },
+    { "wildcard": "biotempo.log?.csv", "storageFile": true }
+  ]
+}

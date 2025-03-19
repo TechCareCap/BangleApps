@@ -1,0 +1,9 @@
+{
+  "enabledSensors": ["accel", "baro", "hrm"],
+  "file": "",
+  "isRecording": false,
+  "localeOffset": 1,
+  "macAddress": "E8:F7:91:FB:61:DB",
+  "pid": "05",
+  "samplingFrequency": 1
+}
